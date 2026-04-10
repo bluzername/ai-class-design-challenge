@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="slides-format" content="viewport">
+  <title>Design the Next AI Class</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-bg: #F0F7FF;
+      --color-bg-deep: #DCEEFF;
+      --color-surface: #FFFFFF;
+      --color-text: #17324D;
+      --color-text-secondary: #31506F;
+      --color-text-muted: #5F7E9C;
+      --color-accent-1: #2563EB;
+      --color-accent-2: #F97066;
+      --color-accent-3: #D4A574;
+      --color-glass-bg: rgba(255,255,255,0.82);
+      --color-glass-border: rgba(23,50,77,0.08);
+      --color-vignette: rgba(10,30,60,0.06);
+      --font-display: 'Plus Jakarta Sans', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+  </style>
+  <style>
+    :root { --color-bg: #F0F7FF; --color-text: #17324D; --glow-color-rgb: 37,99,235; --font-body:'Inter',sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { background: var(--color-bg); margin: 0; }
+    body { font-family: var(--font-body); color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide { position: absolute; inset: 0; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.96); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+    .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+    .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1160px; padding: clamp(1.4rem, 4vw, 3.5rem); }
+    .nav-controls { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 10px 22px; border-radius: 999px; border: 1px solid rgba(23,50,77,0.10); box-shadow: 0 10px 30px rgba(37,99,235,0.10); }
+    .nav-btn { width: 40px; height: 40px; border: none; background: rgba(37,99,235,0.08); color: #2563EB; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+    .slide-dots { display: flex; gap: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(23,50,77,0.15); cursor: pointer; transition: all 0.25s ease; }
+    .dot.active { background: #2563EB; transform: scale(1.25); }
+    .slide-counter { font-size: 0.85rem; color: #5F7E9C; min-width: 44px; text-align: center; }
+    .reveal { opacity: 0; transform: translateY(20px); }
+    @keyframes float-slow {
+      0% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(30px,-25px) scale(1.08); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    @keyframes float-drift {
+      0% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(-35px,30px) scale(0.94); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: float-slow 12s ease-in-out infinite; }
+    .blob:nth-child(2) { animation: float-drift 16s ease-in-out infinite; }
+    .blob:nth-child(3) { animation: float-slow 18s ease-in-out infinite reverse; }
+    .slide::before {
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat; background-size: 220px 220px; opacity: 0.018; mix-blend-mode: multiply;
+    }
+    .slide::after {
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 52%, rgba(10,30,60,0.06) 100%);
+    }
+    .card { background: rgba(255,255,255,0.82); border: 1px solid rgba(23,50,77,0.08); border-radius: 24px; box-shadow: 0 14px 34px rgba(37,99,235,0.08); }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background: rgba(37,99,235,0.10); color:#2563EB; font-weight:700; }
+    .big-emoji { font-size: clamp(78px, 10vw, 128px); animation: bob 3s ease-in-out infinite; }
+    .deco-shape { position:absolute; border-radius:999px; pointer-events:none; z-index:1; opacity:0.22; }
+    .mouse-spotlight { position:fixed; inset:0; z-index:99; pointer-events:none; }
+    .bar-track { background: rgba(37,99,235,0.10); border-radius: 999px; height: 16px; overflow:hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2563EB, #F97066); width:0; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="mouse-spotlight"></div>
+<div class="deck">
+  <div class="slide active" data-slide="1">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:420px;height:420px;top:-90px;right:-80px;background:#93C5FD;opacity:0.34"></div>
+      <div class="blob" style="width:320px;height:320px;bottom:-80px;left:-50px;background:#FDBA74;opacity:0.26"></div>
+      <div class="blob" style="width:250px;height:250px;top:44%;left:14%;background:#F9A8D4;opacity:0.18"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <div class="big-emoji mb-4">&#127891;&#129302;</div>
+      <div class="pill mx-auto mb-5 reveal">Today you become the teacher team</div>
+      <h1 class="font-display text-[clamp(2.4rem,5.6vw,4.8rem)] font-extrabold tracking-tight mb-3 reveal" style="line-height:1.02;background:linear-gradient(135deg,#2563EB,#F97066,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent;">Design the Next AI Class</h1>
+      <p class="text-[clamp(1rem,1.7vw,1.35rem)] text-text-secondary max-w-[760px] mx-auto reveal">Work in pairs, build one great lesson idea, and pitch it in a simple, clear way.</p>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="2">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:330px;height:330px;top:-70px;right:-70px;background:#BFDBFE;opacity:0.24"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-50px;background:#FED7AA;opacity:0.20"></div>
+    </div>
+    <div class="deco-shape" data-speed="0.03" style="width:140px;height:140px;right:10%;top:18%;background:#93C5FD"></div>
+    <div class="deco-shape" data-speed="0.05" style="width:90px;height:90px;left:12%;bottom:20%;background:#FDBA74"></div>
+    <div class="content">
+      <div class="grid grid-cols-2 gap-8 items-center">
+        <div>
+          <div class="pill mb-4 reveal">Your mission</div>
+          <h2 class="font-display text-[clamp(2rem,4vw,3.1rem)] font-extrabold tracking-tight mb-4 reveal">Make a class we could really run</h2>
+          <ul class="space-y-4 text-[1.1rem] text-text-secondary">
+            <li class="reveal">Choose a partner. Working alone is okay, but pairs are the default.</li>
+            <li class="reveal">Design one AI lesson for our class, not for other students.</li>
+            <li class="reveal">Keep it real: it should fit one class and be fun, safe, and doable.</li>
+            <li class="reveal">The best 3 ideas may become real future classes.</li>
+          </ul>
+        </div>
+        <div class="card p-8 reveal">
+          <div class="text-5xl mb-3">&#127959;&#65039;</div>
+          <h3 class="text-2xl font-extrabold mb-3 text-accent-1">Think like a class designer</h3>
+          <p class="text-lg text-text-secondary mb-4">A strong idea is not just "use AI." It has a goal, an activity, and a result students can show.</p>
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="rounded-2xl bg-[rgba(37,99,235,0.08)] p-4 text-center"><div class="text-2xl">&#127919;</div><div class="font-bold mt-1">Clear goal</div></div>
+            <div class="rounded-2xl bg-[rgba(249,112,102,0.10)] p-4 text-center"><div class="text-2xl">&#128736;&#65039;</div><div class="font-bold mt-1">Real activity</div></div>
+            <div class="rounded-2xl bg-[rgba(212,165,116,0.15)] p-4 text-center"><div class="text-2xl">&#128230;</div><div class="font-bold mt-1">Final product</div></div>
+            <div class="rounded-2xl bg-[rgba(37,99,235,0.06)] p-4 text-center"><div class="text-2xl">&#128522;</div><div class="font-bold mt-1">Fun factor</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="3">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:320px;height:320px;top:-75px;right:-65px;background:#BFDBFE;opacity:0.22"></div>
+      <div class="blob" style="width:230px;height:230px;bottom:-55px;left:-40px;background:#FECACA;opacity:0.18"></div>
+    </div>
+    <div class="deco-shape" data-speed="0.04" style="width:120px;height:120px;left:6%;top:14%;background:#C4B5FD"></div>
+    <div class="content">
+      <div class="pill mb-4 reveal">Use this simple template</div>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-6 reveal">Your proposal needs 5 parts</h2>
+      <div class="grid grid-cols-3 gap-5">
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">1&#65039;&#8419;</div><h3 class="font-extrabold text-xl mb-2">Class title</h3><p class="text-text-secondary">Give it a short, catchy name.</p></div>
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">2&#65039;&#8419;</div><h3 class="font-extrabold text-xl mb-2">Goal</h3><p class="text-text-secondary">What will we learn or make by the end?</p></div>
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">3&#65039;&#8419;</div><h3 class="font-extrabold text-xl mb-2">3 steps</h3><p class="text-text-secondary">Beginning, middle, end. Keep each step simple.</p></div>
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">4&#65039;&#8419;</div><h3 class="font-extrabold text-xl mb-2">Tools</h3><p class="text-text-secondary">What AI tool or materials do we need?</p></div>
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">5&#65039;&#8419;</div><h3 class="font-extrabold text-xl mb-2">Final result</h3><p class="text-text-secondary">What will students show at the end?</p></div>
+        <div class="card p-6 reveal"><div class="text-3xl mb-2">&#10024;</div><h3 class="font-extrabold text-xl mb-2">Bonus</h3><p class="text-text-secondary">Why will this class feel exciting?</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="4">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:360px;height:360px;top:-100px;right:-60px;background:#C7D2FE;opacity:0.22"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-65px;left:-50px;background:#FDBA74;opacity:0.20"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content">
+      <div class="pill mb-4 reveal">AI helper tips</div>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-6 reveal">Use ChatGPT smartly</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="card p-6 reveal">
+          <div class="text-4xl mb-2">&#129504;</div>
+          <h3 class="text-xl font-extrabold mb-2">1. Ask for choices, not one answer</h3>
+          <p class="text-text-secondary">Prompt: "Give us 5 AI class ideas for kids aged 9-13. Make them fun, safe, and possible in 1 hour."</p>
+        </div>
+        <div class="card p-6 reveal">
+          <div class="text-4xl mb-2">&#127898;&#65039;</div>
+          <h3 class="text-xl font-extrabold mb-2">2. Set clear limits</h3>
+          <p class="text-text-secondary">Tell the chatbot your time, tools, and level. Good limits give better ideas.</p>
+        </div>
+        <div class="card p-6 reveal">
+          <div class="text-4xl mb-2">&#128257;</div>
+          <h3 class="text-xl font-extrabold mb-2">3. Ask it to improve one part</h3>
+          <p class="text-text-secondary">Example: "Make step 2 more active," or "simplify this for students with weaker English."</p>
+        </div>
+        <div class="card p-6 reveal">
+          <div class="text-4xl mb-2">&#129514;</div>
+          <h3 class="text-xl font-extrabold mb-2">4. Use it to test your plan</h3>
+          <p class="text-text-secondary">Prompt: "What could go wrong with this class idea? Give 3 problems and 3 fixes."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="5">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:340px;height:340px;top:-70px;right:-50px;background:#BFDBFE;opacity:0.20"></div>
+      <div class="blob" style="width:240px;height:240px;bottom:-55px;left:-40px;background:#FCD34D;opacity:0.18"></div>
+    </div>
+    <div class="deco-shape" data-speed="0.04" style="width:110px;height:110px;right:8%;top:16%;background:#FCA5A5"></div>
+    <div class="content">
+      <div class="grid grid-cols-2 gap-8 items-start">
+        <div>
+          <div class="pill mb-4 reveal">Class flow</div>
+          <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-4 reveal">How today will work</h2>
+          <div class="space-y-4">
+            <div class="card p-5 reveal"><div class="font-extrabold text-accent-1 mb-1">10 min</div><div class="text-lg">Pick partners and brainstorm ideas.</div></div>
+            <div class="card p-5 reveal"><div class="font-extrabold text-accent-1 mb-1">20 min</div><div class="text-lg">Build your proposal with the 5-part template.</div></div>
+            <div class="card p-5 reveal"><div class="font-extrabold text-accent-1 mb-1">15 min</div><div class="text-lg">Use a chatbot to improve and test your plan.</div></div>
+            <div class="card p-5 reveal"><div class="font-extrabold text-accent-1 mb-1">15 min</div><div class="text-lg">Pitch your idea in 1 minute.</div></div>
+          </div>
+        </div>
+        <div class="card p-8 reveal">
+          <h3 class="text-2xl font-extrabold mb-5">A winning idea is...</h3>
+          <div class="space-y-5">
+            <div>
+              <div class="flex justify-between text-sm font-bold mb-2"><span>Clear</span><span>100%</span></div>
+              <div class="bar-track"><div class="bar-fill" data-width="100"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm font-bold mb-2"><span>Fun</span><span>95%</span></div>
+              <div class="bar-track"><div class="bar-fill" data-width="95"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm font-bold mb-2"><span>Doable in one class</span><span>100%</span></div>
+              <div class="bar-track"><div class="bar-fill" data-width="100"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm font-bold mb-2"><span>Good for our group</span><span>90%</span></div>
+              <div class="bar-track"><div class="bar-fill" data-width="90"></div></div>
+            </div>
+          </div>
+          <p class="text-text-secondary mt-5 text-lg">Simple beats complicated. A clear class is usually stronger than a huge, messy idea.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="6">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:430px;height:430px;top:-100px;right:-90px;background:#93C5FD;opacity:0.32"></div>
+      <div class="blob" style="width:310px;height:310px;bottom:-80px;left:-55px;background:#FDBA74;opacity:0.24"></div>
+      <div class="blob" style="width:240px;height:240px;top:48%;left:14%;background:#F9A8D4;opacity:0.16"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <div class="big-emoji mb-4">&#128640;</div>
+      <div class="pill mx-auto mb-4 reveal">1-minute pitch</div>
+      <h2 class="font-display text-[clamp(2.2rem,5vw,4rem)] font-extrabold tracking-tight mb-4 reveal">Tell us 4 things</h2>
+      <div class="grid grid-cols-4 gap-4 mt-6">
+        <div class="card p-5 reveal"><div class="text-3xl mb-2">&#128219;</div><div class="font-extrabold">Name</div><div class="text-sm text-text-secondary mt-1">What is your class called?</div></div>
+        <div class="card p-5 reveal"><div class="text-3xl mb-2">&#127919;</div><div class="font-extrabold">Goal</div><div class="text-sm text-text-secondary mt-1">What will we learn or make?</div></div>
+        <div class="card p-5 reveal"><div class="text-3xl mb-2">&#128736;&#65039;</div><div class="font-extrabold">Activity</div><div class="text-sm text-text-secondary mt-1">What will students do?</div></div>
+        <div class="card p-5 reveal"><div class="text-3xl mb-2">&#10024;</div><div class="font-extrabold">Why it wins</div><div class="text-sm text-text-secondary mt-1">Why should we choose it?</div></div>
+      </div>
+      <p class="text-[1.15rem] text-text-secondary max-w-[720px] mx-auto mt-8 reveal">Speak clearly, keep it short, and show the best part first.</p>
+    </div>
+  </div>
+</div>
+
+<div class="nav-controls" aria-label="Slide navigation">
+  <button class="nav-btn" aria-label="Previous slide" onclick="changeSlide(-1)">&#8249;</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" aria-label="Next slide" onclick="changeSlide(1)">&#8250;</button>
+  <span class="slide-counter" id="counter">1 / 6</span>
+</div>
+
+<script>
+  let current = 1;
+  const total = document.querySelectorAll('.slide').length;
+  const dotsContainer = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  for (let i = 1; i <= total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 1 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+  function goToSlide(n) {
+    const prev = document.querySelector('.slide.active');
+    const next = document.querySelector(`.slide[data-slide="${n}"]`);
+    if (prev) prev.classList.remove('active');
+    if (next) { next.classList.add('active'); animateSlide(next); }
+    current = n; updateNav();
+  }
+  function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+  function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i + 1 === current)); counter.textContent = current + ' / ' + total; }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+
+  function animateSlide(slide) {
+    slide.querySelectorAll('.reveal').forEach((el, i) => {
+      el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.offsetHeight;
+      const delay = i * 0.08;
+      el.style.transition = `opacity 0.35s ease ${delay}s, transform 0.35s ease ${delay}s`;
+      el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+    });
+    animateSlideEffects(slide);
+  }
+  function animateSlideEffects(slide) {
+    slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => {
+      bar.classList.add('fill-init');
+      bar.style.transition = `width 0.7s ease ${i * 0.08}s`;
+      requestAnimationFrame(() => { bar.style.width = bar.dataset.width + '%'; });
+    });
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    const spotlight = document.querySelector('.mouse-spotlight');
+    if (spotlight) spotlight.style.background = `radial-gradient(500px circle at ${e.clientX}px ${e.clientY}px, rgba(37,99,235,0.06), transparent 40%)`;
+  });
+  (function() {
+    let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+    (function tick() {
+      const ox = (mouseX - cx) / cx, oy = (mouseY - cy) / cy;
+      document.querySelectorAll('.deco-shape').forEach(shape => {
+        const speed = parseFloat(shape.dataset.speed) || 0.03;
+        shape.style.transform = `translate(${ox * speed * 100}px, ${oy * speed * 100}px)`;
+      });
+      requestAnimationFrame(tick);
+    })();
+  })();
+
+  window.initParticles = function(canvas, options) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    function resize(){ canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+    resize(); window.addEventListener('resize', resize);
+    const interactive = options.interactive !== false;
+    const count = options.count || (interactive ? 40 : 16);
+    let mx = -1000, my = -1000;
+    const particles = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      size: Math.random() * 2.3 + 0.7, alpha: Math.random() * 0.28 + 0.08
+    }));
+    if (interactive) {
+      canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); mx = e.clientX - rect.left; my = e.clientY - rect.top; });
+      canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; });
+    }
+    (function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        if (interactive) {
+          const dx = p.x - mx, dy = p.y - my; const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          if (dist < 110) { const force = (110 - dist) / 110 * 1.4; p.vx += (dx / dist) * force * 0.06; p.vy += (dy / dist) * force * 0.06; }
+        }
+        p.vx *= 0.985; p.vy *= 0.985; p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(37,99,235,${p.alpha})`; ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    })();
+  };
+  document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, { interactive: true, count: 40 }));
+  document.querySelectorAll('.particle-canvas-ambient').forEach(c => window.initParticles(c, { interactive: false, count: 16 }));
+  animateSlide(document.querySelector('.slide.active'));
+</script>
+</body>
+</html>
