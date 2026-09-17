@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate the deck
+        run: python3 scripts/check_deck.py
+
+      - name: External assets resolve
+        run: |
+          set -e
+          # preconnect hints are origins, not fetchable assets, so skip them
+          for url in $(grep -v 'rel="preconnect"' index.html | grep -oE '(src|href)="https://[^"]+"' | sed -E 's/^(src|href)="//; s/"$//' | sort -u); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -L "$url")
+            echo "$code $url"
+            [ "$code" = "200" ] || exit 1
+          done
+
+      - name: No em or en dashes
+        run: |
+          if grep -rnP '[\x{2013}\x{2014}]' --include='*.md' --include='*.yml' --include='*.py' . ; then
+            echo "dash characters found"; exit 1
+          fi
